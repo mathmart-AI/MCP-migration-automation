@@ -1,0 +1,184 @@
+# ==============================================================================
+# values-prometheus.yaml
+# Lightweight kube-prometheus-stack for local k3d dev-cluster
+# Helm chart: prometheus-community/kube-prometheus-stack
+# ==============================================================================
+
+# ── Global ────────────────────────────────────────────────────────────────────
+fullnameOverride: "prom-stack"
+
+# ── Grafana ───────────────────────────────────────────────────────────────────
+grafana:
+  enabled: true
+  adminPassword: "dev-admin"
+
+  # Minimal resources for local dev
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+  # Ingress via Traefik
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    hosts:
+      - grafana.localhost
+    paths:
+      - /
+
+  # Disable persistence (ephemeral local cluster)
+  persistence:
+    enabled: false
+
+  # Pre-installed datasources
+  sidecar:
+    dashboards:
+      enabled: true
+    datasources:
+      enabled: true
+
+  # Default dashboards
+  defaultDashboardsEnabled: true
+  defaultDashboardsTimezone: browser
+
+# ── Prometheus ────────────────────────────────────────────────────────────────
+prometheus:
+  enabled: true
+
+  prometheusSpec:
+    # Short retention for local dev
+    retention: 2d
+    retentionSize: "4GB"
+
+    # No persistent storage (local dev)
+    storageSpec: {}
+
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+    # Scrape all ServiceMonitors/PodMonitors in any namespace
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+
+    # Reduce scrape interval for lighter load
+    scrapeInterval: "30s"
+    evaluationInterval: "30s"
+
+# ── Alertmanager ──────────────────────────────────────────────────────────────
+alertmanager:
+  enabled: true
+
+  alertmanagerSpec:
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        cpu: 50m
+        memory: 64Mi
+    storage: {}
+
+  config:
+    global:
+      resolve_timeout: 5m
+    route:
+      group_by: ['alertname', 'namespace']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+      receiver: 'null'
+    receivers:
+      - name: 'null'
+
+# ── Node Exporter ─────────────────────────────────────────────────────────────
+nodeExporter:
+  enabled: true
+
+prometheus-node-exporter:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 50m
+      memory: 64Mi
+
+# ── kube-state-metrics ────────────────────────────────────────────────────────
+kubeStateMetrics:
+  enabled: true
+
+kube-state-metrics:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 50m
+      memory: 64Mi
+
+# ── Prometheus Operator ───────────────────────────────────────────────────────
+prometheusOperator:
+  enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# ── Disabled components (reduce footprint) ────────────────────────────────────
+# k3d embeds CoreDNS/etcd differently — disable scrapers that won't work
+kubeEtcd:
+  enabled: false
+
+kubeControllerManager:
+  enabled: false
+
+kubeScheduler:
+  enabled: false
+
+kubeProxy:
+  enabled: false
+
+# ── Default rules (keep only essentials) ─────────────────────────────────────
+defaultRules:
+  create: true
+  rules:
+    alertmanager: true
+    etcd: false
+    configReloaders: true
+    general: true
+    k8s: true
+    kubeApiserverAvailability: true
+    kubeApiserverBurnrate: false
+    kubeApiserverHistogram: false
+    kubeApiserverSlos: false
+    kubelet: true
+    kubeProxy: false
+    kubePrometheusGeneral: true
+    kubePrometheusNodeRecording: true
+    kubernetesApps: true
+    kubernetesResources: true
+    kubernetesStorage: true
+    kubernetesSystem: true
+    kubeSchedulerAlerting: false
+    kubeSchedulerRecording: false
+    kubeStateMetrics: true
+    network: true
+    node: true
+    nodeExporterAlerting: true
+    nodeExporterRecording: true
+    prometheus: true
+    prometheusOperator: true
+    windows: false

@@ -1,0 +1,14 @@
+apiVersion: v2
+name: observability
+description: >
+  Lightweight observability stack for local k3d dev-cluster.
+  Wraps kube-prometheus-stack with sensible defaults for development.
+type: application
+version: 0.1.0
+appVersion: "65.3.1"   # kube-prometheus-stack chart version
+
+dependencies:
+  - name: kube-prometheus-stack
+    version: "65.3.1"
+    repository: https://prometheus-community.github.io/helm-charts
+    condition: kube-prometheus-stack.enabled
