@@ -54,20 +54,15 @@ class Settings(BaseSettings):
     celery_task_time_limit: int = 3600
     celery_task_soft_time_limit: int = 3000
 
-    # Embeddings
-    embedding_provider: str = "local"  # "local" or "openai"
-    openai_api_key: Optional[str] = None
-    openai_embedding_model: str = "text-embedding-3-small"
-    openai_embedding_dimension: int = 1536
-    
-    # LLM Summarization (Phase 2)
-    llm_provider: str = "openrouter"  # "openai" or "openrouter"
-    llm_model: str = "gpt-oss:120b"  # Model to use for summarization
-    openrouter_api_key: Optional[str] = None  # OpenRouter API key
-    ollama_base_url: str = "http://localhost:11434/v1"  # Ollama base URL
-    llm_request_timeout: int = 300  # Timeout in seconds (default 5 minutes)
+    # Embeddings — ZERO EGRESS: only local provider allowed
+    embedding_provider: str = "local"  # Locked to "local" — no external API
     local_embedding_model: str = "sentence-transformers/all-mpnet-base-v2"
     embedding_batch_size: int = 100
+
+    # LLM Summarization — ZERO EGRESS: disabled, all AI via Go Proxy / Copilot SDK
+    llm_provider: str = "disabled"  # No external LLM provider
+    llm_model: str = "none"  # No model — summarization handled by heuristics
+    llm_request_timeout: int = 300  # Kept for interface compatibility
 
     # Vector Store
     vector_store_type: str = "pgvector"

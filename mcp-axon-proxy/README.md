@@ -199,17 +199,18 @@ AXON_BACKEND_URL="http://localhost:8000/mcp" \
 
 ```
 mcp-axon-proxy/
+├── .gitignore
 ├── cmd/
 │   ├── server/       # Serveur MCP (proxy Go — point d'entrée VS Code)
 │   ├── cli/          # CLI headless (axon-cli)
+│   ├── packer/       # Outil de packaging
 │   └── test/         # Tests d'intégration
 ├── internal/
-│   ├── prompts/      # Définition des agents/personas (prompts.go)
+│   ├── prompts/      # Définition des agents/personas
 │   └── tools/        # Dynamic tool registration depuis Axon backend
 ├── missions/         # Fichiers de mission (.md)
 │   ├── MISSION_DISCOVERY.md
-│   ├── MISSION_MIGRATE_APP.md
-│   └── MISSION_K3D.md
+│   └── MISSION_MIGRATE_APP.md
 ├── scripts/          # Scripts utilitaires
 │   └── start_mcp_environment.sh  ← POINT D'ENTRÉE PRINCIPAL
 ├── go.mod

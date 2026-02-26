@@ -1,0 +1,29 @@
+# Compiled binaries
+mcp-axon-proxy
+axon-cli
+axon-packer
+
+# Go build cache
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test output
+*.test
+*.out
+*.log
+*.tar.gz
+
+# Temp / IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Env files
+.env
+.env.local

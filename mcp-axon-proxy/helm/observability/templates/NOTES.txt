@@ -1,4 +1,0 @@
-{{/*
-Observability chart — no additional Kubernetes manifests.
-kube-prometheus-stack is installed via Helm dependency.
-*/}}
