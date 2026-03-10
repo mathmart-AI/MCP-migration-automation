@@ -102,6 +102,42 @@ if [ -n "${AXON_WORKSPACE:-}" ] && [ -d "${AXON_WORKSPACE}" ]; then
     log_info "Mounting ${AXON_WORKSPACE} → /WORKSPACE (workspace folder)"
 fi
 
+# ── OS-specific volume mounts ────────────────────────────────────────────────
+OS_TYPE=$(uname -s)
+OS_MOUNT_ARGS=()
+
+if [[ "${OS_TYPE}" == "Darwin" ]]; then
+    # MacOS mounts
+    OS_MOUNT_ARGS=(
+        "-v" "/Users:/Users"
+        "-v" "/private:/private"
+        "-v" "/var:/var"
+        "-v" "/tmp:/tmp"
+    )
+    log_info "MacOS detected: mounting /Users, /private, /var, /tmp"
+elif [[ "${OS_TYPE}" == "Linux" ]]; then
+    if grep -q microsoft /proc/version 2>/dev/null; then
+        # WSL mounts (crucial: /mnt for Windows C:\ drive access)
+        OS_MOUNT_ARGS=(
+            "-v" "/home:/home"
+            "-v" "/tmp:/tmp"
+            "-v" "/mnt:/mnt"
+        )
+        log_info "WSL detected: mounting /home, /tmp, /mnt (Windows drives)"
+    else
+        # Native Linux mounts
+        OS_MOUNT_ARGS=(
+            "-v" "/home:/home"
+            "-v" "/var:/var"
+            "-v" "/tmp:/tmp"
+        )
+        log_info "Linux detected: mounting /home, /var, /tmp"
+    fi
+else
+    log_warn "Unknown OS (${OS_TYPE}), falling back to basic /tmp mount"
+    OS_MOUNT_ARGS=("-v" "/tmp:/tmp")
+fi
+
 # Start the container (with volume mount for local file analysis)
 log_info "Starting Python backend on port ${AXON_PORT}..."
 log_info "Mounting ${HOME}/CONTEXT → /CONTEXT (for Tree-sitter analysis)"
@@ -109,7 +145,8 @@ docker run -d \
     --name "${AXON_CONTAINER_NAME}" \
     -p "${AXON_PORT}:${AXON_PORT}" \
     -v "${HOME}/CONTEXT:/CONTEXT" \
-    "${WORKSPACE_MOUNT_ARGS[@]}" \
+    ${OS_MOUNT_ARGS[@]+"${OS_MOUNT_ARGS[@]}"} \
+    ${WORKSPACE_MOUNT_ARGS[@]+"${WORKSPACE_MOUNT_ARGS[@]}"} \
     -e AUTH_ENABLED=false \
     -e MCP_AUTH_ENABLED=false \
     -e MCP_TRANSPORT=http \

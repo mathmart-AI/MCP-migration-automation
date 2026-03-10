@@ -32,16 +32,23 @@ git clone git@github.com:mathmart-AI/MCP-migration-automation.git
 cd MCP-migration-automation
 ```
 
-### 2. Démarrer l'infrastructure (Docker backend + Go proxy)
+### 2. Installation Automatisée (Nouveau Plugin Natif)
+
+```bash
+./setup.sh
+```
+Ce script détecte votre OS (Mac, Linux, WSL2), vérifie les dépendances (Go, Docker, gh), compile le SDK Go de manière transparente, et installe **le plugin natif Axon** dans votre CLI GitHub Copilot.
+
+### 3. Démarrer l'infrastructure (Docker backend + Go proxy)
 
 ```bash
 cd mcp-axon-proxy
 ./scripts/start_mcp_environment.sh &
 ```
 
-Ce script compile le binaire Go, build l'image Docker Axon, monte `~/CONTEXT` et attend que le backend soit healthy.
+Ce script démarre l'image Docker multi-OS (volumes adaptés automatiquement) et attend que le backend soit healthy. Il garde `/CONTEXT` monté inconditionnellement.
 
-### 3. Indexer vos projets dans Axon
+### 4. Indexer vos projets dans Axon
 
 ```bash
 # Adapter les chemins à vos dossiers dans ~/CONTEXT
@@ -54,14 +61,14 @@ curl -s -X POST "http://localhost:8000/api/v1/repositories" \
   -d '{"path": "/CONTEXT/app_a_migrer", "name": "app-migration"}' | jq .
 ```
 
-### 4. Builder le CLI (une seule fois)
+### 5. Builder le CLI (une seule fois)
 
 ```bash
 cd mcp-axon-proxy
 go build -o axon-cli ./cmd/cli
 ```
 
-### 5. Lancer une mission agent
+### 6. Lancer une mission agent
 
 ```bash
 # Audit de la Helm Platform

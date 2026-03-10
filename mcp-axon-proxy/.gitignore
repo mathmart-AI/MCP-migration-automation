@@ -27,3 +27,4 @@ axon-packer
 # Env files
 .env
 .env.local
+plugin.json

@@ -8,6 +8,15 @@
 
 > Tout ce dont vous avez besoin pour démarrer demain matin, dans l'ordre.
 
+### 0. Installation Automatisée (Nouveau !)
+
+Si c'est votre première fois, lancez simplement le script de setup pour tout configurer et installer le plugin natif `axon` :
+
+```bash
+cd ~/work/test/MCP-migration-automation
+./setup.sh
+```
+
 ### 1. Démarrer l'infrastructure (Docker + Go Proxy)
 
 ```bash
