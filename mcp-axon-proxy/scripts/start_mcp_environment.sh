@@ -93,6 +93,15 @@ fi
 docker build -t "${AXON_IMAGE_NAME}" "${AXON_BACKEND_DIR}"
 log_ok "Docker image built successfully."
 
+# ── Workspace volume (optional) ──────────────────────────────────────────────
+# Mount /WORKSPACE only when AXON_WORKSPACE is explicitly set by the caller.
+# If unset, /WORKSPACE is not mounted (use axon-start.sh for auto-workspace).
+WORKSPACE_MOUNT_ARGS=()
+if [ -n "${AXON_WORKSPACE:-}" ] && [ -d "${AXON_WORKSPACE}" ]; then
+    WORKSPACE_MOUNT_ARGS=(-v "${AXON_WORKSPACE}:/WORKSPACE")
+    log_info "Mounting ${AXON_WORKSPACE} → /WORKSPACE (workspace folder)"
+fi
+
 # Start the container (with volume mount for local file analysis)
 log_info "Starting Python backend on port ${AXON_PORT}..."
 log_info "Mounting ${HOME}/CONTEXT → /CONTEXT (for Tree-sitter analysis)"
@@ -100,6 +109,7 @@ docker run -d \
     --name "${AXON_CONTAINER_NAME}" \
     -p "${AXON_PORT}:${AXON_PORT}" \
     -v "${HOME}/CONTEXT:/CONTEXT" \
+    "${WORKSPACE_MOUNT_ARGS[@]}" \
     -e AUTH_ENABLED=false \
     -e MCP_AUTH_ENABLED=false \
     -e MCP_TRANSPORT=http \
@@ -114,7 +124,11 @@ docker run -d \
     -e ENVIRONMENT=local \
     -e DEBUG=false \
     "${AXON_IMAGE_NAME}"
-log_ok "Container '${AXON_CONTAINER_NAME}' started (volume: ~/CONTEXT → /CONTEXT)."
+if [ ${#WORKSPACE_MOUNT_ARGS[@]} -gt 0 ]; then
+    log_ok "Container '${AXON_CONTAINER_NAME}' started (volumes: ~/CONTEXT → /CONTEXT, ${AXON_WORKSPACE} → /WORKSPACE)."
+else
+    log_ok "Container '${AXON_CONTAINER_NAME}' started (volume: ~/CONTEXT → /CONTEXT)."
+fi
 
 # ==============================================================================
 # STEP 3: Wait for the Python backend to be ready

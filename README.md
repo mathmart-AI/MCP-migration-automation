@@ -125,6 +125,36 @@ AXON_BACKEND_URL="http://localhost:8000/mcp" \
 
 ---
 
+## Intégration VS Code Copilot Chat
+
+Axon expose un endpoint MCP HTTP (`http://localhost:8000/mcp`) que **VS Code Copilot Chat** peut utiliser directement via un fichier `.vscode/mcp.json`. Pour un usage en terminal, `axon-server` offre un chat interactif avec les tools Axon.
+
+> ℹ️ La CLI officielle `gh copilot` ne supporte pas encore nativement la connexion à un serveur MCP local — voir [docs/COPILOT_INTEGRATION.md](docs/COPILOT_INTEGRATION.md) pour les détails.
+
+Un script tout-en-un `axon-start.sh` permet de **démarrer Axon depuis n'importe quel dossier** sans passer par `~/CONTEXT` :
+
+```bash
+cd ~/works/mon-projet    # Votre projet, n'importe où sur la machine
+./mcp-axon-proxy/scripts/axon-start.sh
+# → Lance Docker, monte le dossier courant en /WORKSPACE, scanne et affiche les instructions
+```
+
+Pour connecter VS Code Copilot Chat, copiez `.vscode/mcp.json` dans votre projet :
+
+```json
+{
+  "mcpServers": {
+    "axon": {
+      "url": "http://localhost:8000/mcp"
+    }
+  }
+}
+```
+
+📖 Guide complet : [docs/COPILOT_INTEGRATION.md](docs/COPILOT_INTEGRATION.md)
+
+---
+
 ## Dépannage rapide
 
 | Problème | Commande |
