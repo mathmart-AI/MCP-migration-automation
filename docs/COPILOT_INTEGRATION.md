@@ -52,7 +52,7 @@ Le script `mcp-axon-proxy/scripts/axon-start.sh` remplace le workflow manuel en 
 
 1. Démarre le container Docker avec `~/CONTEXT` ET le dossier courant monté en `/WORKSPACE`
 2. Attend que le backend soit healthy (`curl http://localhost:8000/api/v1/health`)
-3. Indexe automatiquement le dossier courant dans Axon via l'API REST
+3. Déclenche le scan du dossier courant dans Axon via l'API stateless `/api/v1/local-index/scan` (endpoint dédié à l'analyse locale sans création de repository dans la base de données)
 4. Affiche les instructions pour connecter `gh copilot` / VS Code
 
 ### C. Template `.vscode/mcp.json`

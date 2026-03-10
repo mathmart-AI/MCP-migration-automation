@@ -12,8 +12,12 @@
 # Ce script :
 #   1. Démarre le backend Docker avec ~/CONTEXT ET le dossier courant monté en /WORKSPACE
 #   2. Attend que le backend soit healthy (http://localhost:8000/api/v1/health)
-#   3. Indexe automatiquement le dossier courant dans Axon via l'API REST
+#   3. Scanne le dossier courant via l'API stateless /api/v1/local-index/scan
 #   4. Affiche les instructions pour connecter gh copilot / VS Code
+#
+# Variables optionnelles :
+#   AXON_WORKSPACE    — dossier à monter (défaut : $(pwd))
+#   AXON_FORCE_BUILD  — mettre à "true" pour forcer le rebuild de l'image Docker
 # ==============================================================================
 set -euo pipefail
 
@@ -68,7 +72,29 @@ log_ok "Workspace : ${AXON_WORKSPACE}"
 # STEP 1: Démarrer (ou réutiliser) le container Docker
 # ==============================================================================
 if docker ps -q --filter "name=${AXON_CONTAINER_NAME}" 2>/dev/null | grep -q .; then
-    log_warn "Le container '${AXON_CONTAINER_NAME}' tourne déjà — vérification de la santé..."
+    log_warn "Le container '${AXON_CONTAINER_NAME}' tourne déjà — vérification du workspace monté..."
+
+    # Vérifier que le bind mount /WORKSPACE correspond bien au AXON_WORKSPACE courant
+    container_workspace_src="$(docker inspect --format '{{range .Mounts}}{{if eq .Destination "/WORKSPACE"}}{{.Source}}{{end}}{{end}}' "${AXON_CONTAINER_NAME}" 2>/dev/null || true)"
+
+    if [ -z "${container_workspace_src}" ]; then
+        log_error "Le container '${AXON_CONTAINER_NAME}' ne possède pas de mount /WORKSPACE."
+        log_error "Il a peut-être été démarré sans le volume workspace (via start_mcp_environment.sh sans AXON_WORKSPACE)."
+        log_error "Par sécurité, arrêtez-le puis relancez ce script :"
+        log_error "  docker stop ${AXON_CONTAINER_NAME} && docker rm ${AXON_CONTAINER_NAME}"
+        exit 1
+    fi
+
+    if [ "${container_workspace_src}" != "${AXON_WORKSPACE}" ]; then
+        log_error "Le container '${AXON_CONTAINER_NAME}' utilise déjà un autre workspace :"
+        log_error "  Demandé   : ${AXON_WORKSPACE}"
+        log_error "  Monté     : ${container_workspace_src}"
+        log_error "Arrêtez le container puis relancez ce script :"
+        log_error "  docker stop ${AXON_CONTAINER_NAME} && docker rm ${AXON_CONTAINER_NAME}"
+        exit 1
+    fi
+
+    log_ok "Workspace monté correspond au workspace courant."
 else
     # Supprimer un container arrêté s'il existe
     if docker ps -aq --filter "name=${AXON_CONTAINER_NAME}" 2>/dev/null | grep -q .; then
@@ -76,8 +102,8 @@ else
         docker rm "${AXON_CONTAINER_NAME}" >/dev/null 2>&1 || true
     fi
 
-    # Construire l'image si nécessaire
-    if ! docker image inspect "${AXON_IMAGE_NAME}" &>/dev/null; then
+    # Construire l'image (toujours si AXON_FORCE_BUILD=true, sinon seulement si absente)
+    if [ "${AXON_FORCE_BUILD:-false}" = "true" ] || ! docker image inspect "${AXON_IMAGE_NAME}" &>/dev/null; then
         log_info "Construction de l'image Docker '${AXON_IMAGE_NAME}'..."
         if [ ! -d "${AXON_BACKEND_DIR}" ]; then
             log_error "Dossier backend introuvable : ${AXON_BACKEND_DIR}"
@@ -86,7 +112,7 @@ else
         docker build -t "${AXON_IMAGE_NAME}" "${AXON_BACKEND_DIR}"
         log_ok "Image Docker construite."
     else
-        log_ok "Image Docker '${AXON_IMAGE_NAME}' déjà présente."
+        log_ok "Image Docker '${AXON_IMAGE_NAME}' déjà présente (AXON_FORCE_BUILD=true pour forcer rebuild)."
     fi
 
     log_info "Démarrage du backend sur le port ${AXON_PORT}..."
@@ -138,23 +164,21 @@ if [ $elapsed -ge $MAX_WAIT_SECONDS ]; then
 fi
 
 # ==============================================================================
-# STEP 3: Indexer automatiquement le dossier courant dans Axon
+# STEP 3: Scanner le dossier courant via l'API locale d'Axon
 # ==============================================================================
-log_info "Indexation du workspace '${WORKSPACE_NAME}' dans Axon (/WORKSPACE)..."
+log_info "Scan du workspace '${WORKSPACE_NAME}' dans Axon (/WORKSPACE)..."
 
-INDEX_RESPONSE=$(curl -sf -X POST "http://localhost:${AXON_PORT}/api/v1/repositories" \
+if INDEX_RESPONSE=$(curl -sSf -X POST "http://localhost:${AXON_PORT}/api/v1/local-index/scan" \
     -H "Content-Type: application/json" \
-    -d "{\"path\": \"/WORKSPACE\", \"name\": \"${WORKSPACE_NAME}\"}" 2>&1 || true)
-
-if echo "${INDEX_RESPONSE}" | grep -qE '"id"|"name"'; then
-    log_ok "Workspace '${WORKSPACE_NAME}' indexé avec succès."
+    -d "{\"paths\": [\"/WORKSPACE\"]}" 2>&1); then
+    log_ok "Workspace '${WORKSPACE_NAME}' scanné avec succès."
 else
-    log_warn "Indexation retournée : ${INDEX_RESPONSE:-<réponse vide>}"
-    log_warn "Le workspace sera accessible via /WORKSPACE dans le container."
+    log_warn "Scan retournée : ${INDEX_RESPONSE:-<réponse vide>}"
+    log_warn "Le workspace reste accessible via /WORKSPACE dans le container."
     log_warn "Relancez manuellement si besoin :"
-    log_warn "  curl -X POST http://localhost:${AXON_PORT}/api/v1/repositories \\"
+    log_warn "  curl -sSf -X POST http://localhost:${AXON_PORT}/api/v1/local-index/scan \\"
     log_warn "    -H 'Content-Type: application/json' \\"
-    log_warn "    -d '{\"path\": \"/WORKSPACE\", \"name\": \"${WORKSPACE_NAME}\"}'"
+    log_warn "    -d '{\"paths\": [\"/WORKSPACE\"]}'"
 fi
 
 # ==============================================================================

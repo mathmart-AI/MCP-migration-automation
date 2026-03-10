@@ -94,11 +94,10 @@ docker build -t "${AXON_IMAGE_NAME}" "${AXON_BACKEND_DIR}"
 log_ok "Docker image built successfully."
 
 # ── Workspace volume (optional) ──────────────────────────────────────────────
-# If AXON_WORKSPACE is set, mount it as /WORKSPACE inside the container.
-# Defaults to the current working directory if unset.
-AXON_WORKSPACE="${AXON_WORKSPACE:-$(pwd)}"
+# Mount /WORKSPACE only when AXON_WORKSPACE is explicitly set by the caller.
+# If unset, /WORKSPACE is not mounted (use axon-start.sh for auto-workspace).
 WORKSPACE_MOUNT_ARGS=()
-if [ -n "${AXON_WORKSPACE}" ] && [ -d "${AXON_WORKSPACE}" ]; then
+if [ -n "${AXON_WORKSPACE:-}" ] && [ -d "${AXON_WORKSPACE}" ]; then
     WORKSPACE_MOUNT_ARGS=(-v "${AXON_WORKSPACE}:/WORKSPACE")
     log_info "Mounting ${AXON_WORKSPACE} → /WORKSPACE (workspace folder)"
 fi
